@@ -16,7 +16,10 @@ $(function () {
 
   var regions = {
     LAC: {
-      apiUrl: 'https://data.lacounty.gov/resource/6ni6-h5kp.json',
+      // LA County's Socrata endpoint was retired (now redirects to hub.arcgis.com/legacy).
+      // Using City of LA's Socrata portal (same LA County Environmental Health inspection system).
+      // Full county coverage will be restored in Phase 2 via a backend that serves the CSV.
+      apiUrl: 'https://data.lacity.org/resource/29fd-3paw.json',
       nameField: 'facility_name',
       businessIdField: 'facility_id',
       gradeField: 'score',
@@ -24,9 +27,9 @@ $(function () {
       ratings: {},
       scale: '0-100',
       detailsUrl: 'http://publichealth.lacounty.gov/eh/AreasofInterest/food.htm',
-      attributionUrl: 'https://data.lacounty.gov/Health/LOS-ANGELES-COUNTY-RESTAURANT-AND-MARKET-INSPECTIO/6ni6-h5kp',
+      attributionUrl: 'https://data.lacity.org/Community-Economic-Development/Restaurant-and-Market-Health-Inspections/29fd-3paw',
       addressField: 'facility_address',
-      regionName: 'Los Angeles County'
+      regionName: 'Los Angeles, CA'
     },
     NYC: {
       apiUrl: 'https://data.cityofnewyork.us/resource/9w7m-hzhe.json',
