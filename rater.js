@@ -1,235 +1,228 @@
-$(function() {
+$(function () {
 
-$body = $("body");
+  function toTitleCase(str) {
+    return str.toLowerCase().replace(/(?:^|\s)\w/g, function (m) {
+      return m.toUpperCase();
+    });
+  }
 
-// //Attempt at title casing names
-// function toTitleCase(str)
-// {
-//   var lcStr = str.toLowerCase();
-//   return lcStr.replace(/(?:^|\s)\w/g, function(match) {
-//       return match.toUpperCase();
-//   });
-// };
+  var params = new URLSearchParams(window.location.search);
 
+  var savedCity = params.get('city') || localStorage.getItem('city');
+  if (savedCity) $('#city').val(savedCity);
 
-//Check localstorage to see if city has been set previously
-if(localStorage.getItem("city")){
- $("#city").val(localStorage.getItem("city"))
-}
+  var savedQ = params.get('q') || localStorage.getItem('q');
+  if (savedQ) $('.query').val(savedQ);
 
-//Create map of results to be returned from query
-var resultsmap = {};
-//Create regions to pick from
-var regions = 
-{ 
-  SEA:
-  [
-    "https://data.kingcounty.gov/resource/gkhn-e8mn.json", //url
-    "name", //dataset value for name
-    "business_id", //dataset value for business id
-    "grade", //dataset value for grade
-    "IS NOT NULL", //where params
-    {1:"img/SEA/excellent_50.gif", 2:"img/SEA/good_50.gif", 3:"img/SEA/okay_50.gif", 4:"img/SEA/needstoimprove_50.gif"}, //rating images
-    "img/SEA/food-safety-ratings-emoji.png", //scale image
-    "https://www.kingcounty.gov/depts/health/environmental-health/food-safety/inspection-system/food-safety-rating.aspx", //more details from authority
-    "https://data.kingcounty.gov/Health/Food-Establishment-Inspection-Data/f29f-zza5", //attribution
-    "ADDRESS", //dataset value for street number & address
-    "Seattle" //familiar region name
+  var regions = {
+    LAC: {
+      apiUrl: 'https://data.lacounty.gov/resource/6ni6-h5kp.json',
+      nameField: 'facility_name',
+      businessIdField: 'facility_id',
+      gradeField: 'score',
+      whereParam: 'IS NOT NULL',
+      ratings: {},
+      scale: '0-100',
+      detailsUrl: 'http://publichealth.lacounty.gov/eh/AreasofInterest/food.htm',
+      attributionUrl: 'https://data.lacounty.gov/Health/LOS-ANGELES-COUNTY-RESTAURANT-AND-MARKET-INSPECTIO/6ni6-h5kp',
+      addressField: 'facility_address',
+      regionName: 'Los Angeles County'
+    },
+    NYC: {
+      apiUrl: 'https://data.cityofnewyork.us/resource/9w7m-hzhe.json',
+      nameField: 'dba',
+      businessIdField: 'camis',
+      gradeField: 'grade',
+      whereParam: 'IS NOT NULL',
+      ratings: { A: 'img/NYC/a.png', B: 'img/NYC/b.png', C: 'img/NYC/c.png', P: 'img/NYC/p.png', Z: 'img/NYC/p.png', 'Not Yet Graded': 'img/NYC/notyetrated.png' },
+      scale: 'img/NYC/nyc-scale.png',
+      detailsUrl: 'https://www1.nyc.gov/assets/doh/downloads/pdf/rii/inspection-cycle-overview.pdf',
+      attributionUrl: 'https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j',
+      addressField: 'street',
+      regionName: 'New York City'
+    },
+    SFO: {
+      apiUrl: 'https://data.sfgov.org/resource/sipz-fjte.json',
+      nameField: 'business_name',
+      businessIdField: 'business_id',
+      gradeField: 'inspection_score',
+      whereParam: 'IS NOT NULL',
+      ratings: {},
+      scale: '0-100',
+      detailsUrl: 'https://www.sfdph.org/dph/EH/Food/Score/',
+      attributionUrl: 'https://data.sfgov.org/Health-and-Social-Services/Restaurant-Scores-LIVES-Standard/pyih-qa8i',
+      addressField: 'business_address',
+      regionName: 'San Francisco'
+    },
+    SEA: {
+      apiUrl: 'https://data.kingcounty.gov/resource/gkhn-e8mn.json',
+      nameField: 'name',
+      businessIdField: 'business_id',
+      gradeField: 'grade',
+      whereParam: 'IS NOT NULL',
+      ratings: { 1: 'img/SEA/excellent_50.gif', 2: 'img/SEA/good_50.gif', 3: 'img/SEA/okay_50.gif', 4: 'img/SEA/needstoimprove_50.gif' },
+      scale: 'img/SEA/food-safety-ratings-emoji.png',
+      detailsUrl: 'https://www.kingcounty.gov/depts/health/environmental-health/food-safety/inspection-system/food-safety-rating.aspx',
+      attributionUrl: 'https://data.kingcounty.gov/Health/Food-Establishment-Inspection-Data/f29f-zza5',
+      addressField: 'ADDRESS',
+      regionName: 'Seattle'
+    }
+  };
 
-  ],
-  NYC:
-  [
-    "https://data.cityofnewyork.us/resource/9w7m-hzhe.json", //url
-    "dba", //dataset value for name
-    "camis", //dataset value for business id
-    "grade", //dataset value for grade
-    "IS NOT NULL", //where params
-    {"A":"img/NYC/a.png", "B":"img/NYC/b.png", "C":"img/NYC/c.png", "P":"img/NYC/p.png", "Z":"img/NYC/p.png", "Not Yet Graded":"img/NYC/notyetrated.png"}, //rating images
-    "img/NYC/nyc-scale.png", //scale image
-    "https://www1.nyc.gov/assets/doh/downloads/pdf/rii/inspection-cycle-overview.pdf", //more details from authority
-    "https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j", //attribution
-    "street", //dataset value for address
-    "New York City" //familiar region name
-  ],
-  SFO:
-  [
-    "https://data.sfgov.org/resource/sipz-fjte.json", //url
-    "business_name", //dataset value for name
-    "business_id", //dataset value for business id
-    "inspection_score", //dataset value for grade
-    "IS NOT NULL", //where params
-    {}, //rating images
-    "0-100", //scale 
-    "https://www.sfdph.org/dph/EH/Food/Score/", //more details from authority
-    "https://data.sfgov.org/Health-and-Social-Services/Restaurant-Scores-LIVES-Standard/pyih-qa8i", //attribution
-    "business_address", //dataset value for address
-    "San Francisco" //familiar region name
-  ],
-  LAC:
-  [
-    "https://data.lacounty.gov/resource/6ni6-h5kp.json", //url
-    "facility_name", //dataset value for name
-    "facility_id", //dataset value for business id
-    "score", //dataset value for grade
-    "IS NOT NULL", //where params
-    {}, //rating images
-    "0-100", //scale 
-    "http://publichealth.lacounty.gov/eh/AreasofInterest/food.htm", //more details from authority
-    "https://data.lacounty.gov/Health/LOS-ANGELES-COUNTY-RESTAURANT-AND-MARKET-INSPECTIO/6ni6-h5kp", //attribution
-    "facility_address", //dataset value for address
-    "Los Angeles County" //familiar region name
-  ]
-};
+  var currentResults = [];
+  var currentRegion = null;
+  var sortCol = null;
+  var sortAsc = true;
 
+  function renderTableBody() {
+    var $tbody = $('#resultslist tbody').empty();
+    if (currentResults.length === 0) {
+      $tbody.append(
+        $('<tr>').append($('<td>').attr('colspan', 3).text('No results found'))
+      );
+      return;
+    }
+    currentResults.forEach(function (result) {
+      var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent(result.name + ' ' + result.address + ' ' + currentRegion.regionName);
+      var $tr = $('<tr>');
+      $('<td>').text(result.name).appendTo($tr);
+      $('<td>').append(
+        $('<a>').attr({ href: mapsUrl, target: '_blank' }).text(result.address)
+      ).appendTo($tr);
+      var $gradeTd = $('<td>');
+      var imgSrc = currentRegion.ratings[result.grade];
+      if (imgSrc) {
+        $('<img>').attr({ src: imgSrc, width: 50, alt: 'Grade ' + result.grade }).appendTo($gradeTd);
+      } else {
+        $gradeTd.text(result.grade);
+      }
+      $gradeTd.appendTo($tr);
+      $tbody.append($tr);
+    });
+  }
 
+  function updateSortHeaders() {
+    $('th[data-sort]').each(function () {
+      var col = $(this).data('sort');
+      var label = $(this).data('label');
+      $(this).text(label + (col === sortCol ? (sortAsc ? ' ▲' : ' ▼') : ''));
+    });
+  }
 
-// Excute this function when form is submitted
-  $("#search").submit(function(event) {
-     $('#loading').show();
-    //Prevent default submit, clear list in UI, and empty results map
+  $(document).on('click', 'th[data-sort]', function () {
+    var col = $(this).data('sort');
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
+    currentResults.sort(function (a, b) {
+      var va = String(a[col] || '').toLowerCase();
+      var vb = String(b[col] || '').toLowerCase();
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+    updateSortHeaders();
+    renderTableBody();
+  });
+
+  $('#new-search').on('click', function () {
+    $('#results_wrapper').hide();
+    $('#rest_grades').empty();
+    $('#scale').empty();
+    currentResults = [];
+    currentRegion = null;
+    sortCol = null;
+    history.replaceState(null, '', window.location.pathname);
+    $('.query').val('').trigger('focus');
+  });
+
+  $('#search').submit(function (event) {
     event.preventDefault();
-    resultsmap = {};
-    $( "#rest_grades" ).empty();
-    $( "#scale" ).empty();
-    $( "#results_wrapper").show()
-    
-    //Find search parameters
-    var search = $("#search .query").val();
-    var region = $("#search #city").val();
+    $('#loading').show();
+    $('#results_wrapper').hide();
+    $('#rest_grades').empty();
+    $('#scale').empty();
 
-    //Set city in localstorage for next time
-    localStorage.setItem("city", region); 
+    var search = $('.query').val();
+    var regionKey = $('#city').val();
 
-    //console.log("region: "+region);
+    localStorage.setItem('city', regionKey);
+    localStorage.setItem('q', search);
 
-    //Pick region for data based on user input
-    var userregion = regions[region];
+    var url = new URL(window.location.href);
+    url.searchParams.set('city', regionKey);
+    url.searchParams.set('q', search);
+    history.replaceState(null, '', url);
 
-    // //Get dataset address
-    // var datasetaddress = userregion[0];
-
-    //Build query parameters
-    var selectquery = userregion[1]+", "+userregion[2]+", "+userregion[3]+", "+userregion[9];
-    // console.log(selectquery);
-    var wherequery = userregion[3]+" "+userregion[4];
-    // console.log(wherequery);
-
+    var region = regions[regionKey];
+    currentRegion = region;
+    sortCol = null;
+    sortAsc = true;
 
     $.ajax({
-    url: userregion[0],
-    type: "GET",
-    data: {
-      "$select" : selectquery ,
-      "$where": wherequery, 
-      "$q": search,
-      "$limit" : 500,
-      "$$app_token" : "CE7uCoAw5PG2KLRXRhRTCaIaM"
-    }
-    }).done(function(listings) {
-        //Hide Loading Div
-        $('#loading').hide();
+      url: region.apiUrl,
+      type: 'GET',
+      data: {
+        $select: [region.nameField, region.businessIdField, region.gradeField, region.addressField].join(', '),
+        $where: region.gradeField + ' ' + region.whereParam,
+        $q: search,
+        $limit: 500,
+        $$app_token: 'CE7uCoAw5PG2KLRXRhRTCaIaM'
+      }
+    }).done(function (listings) {
+      $('#loading').hide();
+      $('#results_wrapper').show();
 
-        //Set fieldnames for each dataset
-        var namefield = userregion[1];
-        var businessidfield = userregion[2];
-        var gradefield = userregion[3];
-        var ratings = userregion[5];
-        var scale = userregion[6];
-        var scaledetails = userregion[7];
-        var attribution = userregion[8];
-        var addressfield = userregion[9];
-        var regionname = userregion[10];
+      var isImage = region.scale.indexOf('.') !== -1;
+      $('#scale').append(
+        $('<div>').attr('id', 'ratingdetails').append(
+          $('<h2>').text(region.regionName + '’s Rating Scale'),
+          $('<br>'),
+          isImage
+            ? $('<img>').attr({ src: region.scale, width: '60%', alt: region.regionName + ' rating scale' })
+            : $('<span>').text(region.scale)
+        ),
+        $('<div>').attr('id', 'attribution').append(
+          $('<a>').attr({ href: region.detailsUrl, target: '_blank' }).text('More Details'),
+          '   |   ',
+          $('<a>').attr({ href: region.attributionUrl, target: '_blank' }).text('Open Data Source')
+        ),
+        $('<br>')
+      );
 
-        //check if scale is image
-        var str = scale;
-        var res = str.split("."); //split on ".", if present, assume URL
-        // console.log("res.length: "+res.length);  
-        if (res.length == 1)
-        {
-          $( "#scale" ).append( "<div id=\"ratingdetails\"><h2>"+regionname+"'s Rating Scale</h2><br/><span id=\"scale\">"+scale+"</span></div>");
-        }
-        else
-        {
-          $( "#scale" ).append( "<div id=\"ratingdetails\"><h2>"+regionname+"'s Rating Scale</h2><br/><span id=\"scale\"><img width=60% src=\""+scale+"\" /></span></div>");
-        }
+      var resultsmap = {};
+      listings.forEach(function (listing) {
+        var id = listing[region.businessIdField];
+        resultsmap[id] = {
+          name: toTitleCase(String(listing[region.nameField] || '')),
+          grade: String(listing[region.gradeField] || ''),
+          address: String(listing[region.addressField] || '')
+        };
+      });
+      currentResults = Object.values(resultsmap);
 
-        //setup scale        
-        $( "#scale" ).append( "<div id=\"attribution\"><a href=\""+scaledetails+"\" target=\"_blank\">More Details</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<a href=\""+attribution+"\" target=\"_blank\">Open Data Source</a></div><br/>");
+      $('#rest_grades').append(
+        $('<table>').attr('id', 'resultslist').css('margin', '0 auto').append(
+          $('<thead>').append(
+            $('<tr>').append(
+              $('<th>').text('Name').attr({ 'data-sort': 'name', 'data-label': 'Name' }),
+              $('<th>').text('Address').attr({ 'data-sort': 'address', 'data-label': 'Address' }),
+              $('<th>').text('Rating').attr({ 'data-sort': 'grade', 'data-label': 'Rating' })
+            )
+          ),
+          $('<tbody>')
+        )
+      );
 
-        //setup table
-        $( "#rest_grades"  ).append( "<table id=\"resultslist\" align=\"center\"><thead><tr><th>Name</th><th>Address</th><th>Rating</th></tr></thead><tbody>" );
-        
-        // console.log(namefield);  
+      renderTableBody();
 
-        // console.log("Listings.length:"+listings.length);  
-
-        if (listings.length === 0) {
-          $('#resultslist').html("<br/>No Results");
-        }
-
-        $.each(listings, function(idx, listing) {
-          // Fetch each resturaunt listing  
-          
-          //set universal params based on listing entries
-          // console.log("Listing: "+JSON.stringify(listing));  
-          var name = listing[namefield];
-          var grade = listing[gradefield];
-          var businessid = listing[businessidfield];
-          var address = listing[addressfield];
-          
-          //add Businesses to the results map
-          resultsmap[businessid] = {name, grade, address};
-          //console.log(JSON.stringify(resultsmap[businessid]));  
-
-        });
-        // console.log("results map:");
-        // console.log(resultsmap);
-        //console.log("Resultsmap.length: "+resultsmap.length);
-
-        $.each(resultsmap, function(idx, result) {
-           // console.log("map entry:");
-           // console.log(result.name);
-           // console.log("index:" + idx);
-
-        //results html, with ratings as key, converting to image
-          var resultgrade = result.grade;
-          var newrow = "";
-
-          //TODO Title Case Name Results
-          //console.log("titlecasedresultname: "+result.name);
-          var titlecasedresultname = result.name;
-
-          //console.log("Grade for result: "+resultgrade);
-          // console.log("Img for result: "+ratings[resultgrade]);
-
-          var urlescapedname = encodeURIComponent(titlecasedresultname).replace(/%20/g,'+');
-          var urlescapedaddress = encodeURIComponent(result.address).replace(/%20/g,'+');
-          var urlescapedregion = encodeURIComponent(regionname).replace(/%20/g,'+');
-          // console.log("Query Safe URL: "+urlescapedlocation);
-
-          var locationurl = "<a target=\"_blank\" href=\"https://www.google.com/maps/search/?api=1&query="+urlescapedname+"+"+urlescapedaddress+"+"+urlescapedregion+"\">"+result.address+"</a>";
-          if (ratings[resultgrade] == null)
-          {
-             newrow = "<tr><td>"+titlecasedresultname+"</td><td>"+locationurl+"</td><td>"+result.grade+"</td>/tr>";
-          }
-          else
-          {
-            newrow = "<tr><td>"+titlecasedresultname+"</td><td>"+locationurl+"</td><td><img width=50 src=\""+ratings[resultgrade]+"\" /></td>/tr>";
-          }
-          
-          
-          $("#resultslist tbody").append(newrow);
-
-          //$( "#rest_grades" ).append( "<tr><td>"+result.name+"</td><td>"+result.address+"</td><td><img width=50 src=\""+ratings[resultgrade]+"\" /></td>/tr>" );    
-
-          // $( "#rest_grades" ).append( "<span>Name: "+result.name+"</span>&nbsp;<span>Rating: <img width=50 src=\""+ratings[resultgrade]+"\" /></span><br/>");
-          // $( "#rest_grades" ).append( "<span>Address: "+result.address+"</span><br/><br/>");
-        //$( "#rest_grades" ).append( "<span>Name: "+result.name+"</span>&nbsp;<span>Rating: "+result.grade+"</span><br/>");
-        });
-
-        
+    }).fail(function () {
+      $('#loading').hide();
+      $('#results_wrapper').show();
+      $('#rest_grades').append(
+        $('<p>').text('Could not load results. Please check your connection and try again.')
+      );
     });
-    //END OF LISTING ITERATION
-    $( "#rest_grades" ).append( "</tbody></table>" );
   });
+
+  if (params.get('q')) {
+    $('#search').trigger('submit');
+  }
 });
