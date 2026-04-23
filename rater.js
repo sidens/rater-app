@@ -26,7 +26,7 @@ $(function () {
       whereParam: 'IS NOT NULL',
       ratings: {},
       scale: '0-100',
-      detailsUrl: 'http://publichealth.lacounty.gov/eh/AreasofInterest/food.htm',
+      detailsUrl: 'http://publichealth.lacounty.gov/eh/inspection/restaurant-retail-food-inspection.htm',
       attributionUrl: 'https://data.lacity.org/Community-Economic-Development/Restaurant-and-Market-Health-Inspections/29fd-3paw',
       addressField: 'facility_address',
       regionName: 'Los Angeles, CA'
@@ -39,7 +39,7 @@ $(function () {
       whereParam: 'IS NOT NULL',
       ratings: { A: 'img/NYC/a.png', B: 'img/NYC/b.png', C: 'img/NYC/c.png', P: 'img/NYC/p.png', Z: 'img/NYC/p.png', 'Not Yet Graded': 'img/NYC/notyetrated.png' },
       scale: 'img/NYC/nyc-scale.png',
-      detailsUrl: 'https://www1.nyc.gov/assets/doh/downloads/pdf/rii/inspection-cycle-overview.pdf',
+      detailsUrl: 'https://www.nyc.gov/site/doh/services/restaurant-grades.page',
       attributionUrl: 'https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j',
       addressField: 'street',
       regionName: 'New York City'
@@ -52,8 +52,8 @@ $(function () {
       whereParam: 'IS NOT NULL',
       ratings: {},
       scale: '0-100',
-      detailsUrl: 'https://www.sfdph.org/dph/EH/Food/Score/',
-      attributionUrl: 'https://data.sfgov.org/Health-and-Social-Services/Restaurant-Scores-LIVES-Standard/pyih-qa8i',
+      detailsUrl: 'https://www.sf.gov/get-restaurant-health-inspection-results',
+      attributionUrl: 'https://data.sfgov.org/Health-and-Social-Services/Restaurant-Scores-in-SF/6ud7-8ksb',
       addressField: 'business_address',
       regionName: 'San Francisco'
     },
@@ -65,7 +65,7 @@ $(function () {
       whereParam: 'IS NOT NULL',
       ratings: { 1: 'img/SEA/excellent_50.gif', 2: 'img/SEA/good_50.gif', 3: 'img/SEA/okay_50.gif', 4: 'img/SEA/needstoimprove_50.gif' },
       scale: 'img/SEA/food-safety-ratings-emoji.png',
-      detailsUrl: 'https://www.kingcounty.gov/depts/health/environmental-health/food-safety/inspection-system/food-safety-rating.aspx',
+      detailsUrl: 'https://kingcounty.gov/en/dept/dph/health-safety/food-safety/inspection-rating-system/rating-system',
       attributionUrl: 'https://data.kingcounty.gov/Health/Food-Establishment-Inspection-Data/f29f-zza5',
       addressField: 'ADDRESS',
       regionName: 'Seattle'
